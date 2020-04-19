@@ -2,7 +2,7 @@
 
 # Turnip summaries
 
-## Publishes a report to https://bit.ly/34N0LU9
+# Publishes a report to https://bit.ly/34N0LU9
 # Establish base dir
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
@@ -48,9 +48,9 @@ if (file.exists(turnip_file)) {
   last_update <- Sys.time() - file.info(turnip_file)$mtime
 }
 
-# Download turnip data from Googlesheets if 
+# Download turnip data from Googlesheets if
 if (!file.exists(turnip_file) | as.numeric(last_update) > 20) {
-  system(paste("wget -O", turnip_file,  
+  system(paste("wget -O", turnip_file,
        "'https://docs.google.com/spreadsheets/d/1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74/export?format=xlsx&id=1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74'"))
 }
 
@@ -67,57 +67,57 @@ sheet_indices <- which(sheet_names != "Overview")
 # Make this into a data.frame
 all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
   # Obtain preview of next sheet
-  preview <- readxl::read_excel(turnip_file, 
-                                sheet = sheet_num, 
+  preview <- readxl::read_excel(turnip_file,
+                                sheet = sheet_num,
                                 col_names = FALSE)
-  
+
   # Skip these rows of nonsense
   pattern_starts <- which(preview$...1 == "Pattern")
-  
+
   # Import reported prices
-  reported_prices <- readxl::read_excel(turnip_file, 
-                                        sheet = sheet_num, 
+  reported_prices <- readxl::read_excel(turnip_file,
+                                        sheet = sheet_num,
                                         col_names = TRUE,
                                         n_max = pattern_starts -3)  %>%
   # Select only columns we want
-  dplyr::select(date = Date, AM, PM) %>% 
+  dplyr::select(date = Date, AM, PM) %>%
   # Get rid of Price on prefix
-  dplyr::mutate(date = gsub("Price on ", "", date)) %>% 
+  dplyr::mutate(date = gsub("Price on ", "", date)) %>%
   # Make long format
-  tidyr::gather("time", "price", -date) %>% 
+  tidyr::gather("time", "price", -date) %>%
   # Make new variables
-  dplyr::mutate(prediction = "reported", 
+  dplyr::mutate(prediction = "reported",
                 reported_date = paste0(current_date, current_time))
-  
+
   # Read in data for real
-  turnip_pred <- readxl::read_excel(turnip_file, 
-                     sheet = sheet_num, 
-                     col_names = FALSE, 
-                     skip = pattern_starts) %>% 
+  turnip_pred <- readxl::read_excel(turnip_file,
+                     sheet = sheet_num,
+                     col_names = FALSE,
+                     skip = pattern_starts) %>%
     t()
-  
+
   # Remove first row and turn into a data.frame
-  turnip_pred  <- turnip_pred [-1, ] %>% 
+  turnip_pred  <- turnip_pred [-1, ] %>%
     as.data.frame(stringsAsFactors = FALSE)
-  
+
   # Name columns we need
   colnames(turnip_pred )[1:3] <- c("day", "time", "minmax")
-    
+
   # Reformat Day column so there isn't NAs
-  turnip_pred$day <- rep(unique(turnip_pred$day[!is.na(turnip_pred $day)]), 
+  turnip_pred$day <- rep(unique(turnip_pred$day[!is.na(turnip_pred $day)]),
                            each = 4)
-  
+
   # Reformat Time column so there isn't NAs
   turnip_pred$time <- rep(c("AM", "AM", "PM", "PM"), 6)
-  
+
   # Make into long format
-  turnip_pred <- turnip_pred %>% 
-    tidyr::gather("prediction", "price", -day, -time, -minmax) %>% 
-    dplyr::mutate(price = as.numeric(price), 
-                  prediction = gsub("V", "prediction_", prediction), 
+  turnip_pred <- turnip_pred %>%
+    tidyr::gather("prediction", "price", -day, -time, -minmax) %>%
+    dplyr::mutate(price = as.numeric(price),
+                  prediction = gsub("V", "prediction_", prediction),
                   reported_date = paste0(current_date, current_time))
-  
-  return(list(reported = reported_prices, 
+
+  return(list(reported = reported_prices,
               predicted = turnip_pred))
 })
 
@@ -137,27 +137,27 @@ reported_df <- dplyr::bind_rows(reported_prices, .id = "owner")
 predicted_df <- dplyr::bind_rows(predicted_prices, .id = "owner")
 
 # Get total number of predictions
-total_predictions <- predicted_df %>% 
+total_predictions <- predicted_df %>%
   dplyr::group_by(owner) %>%
-  dplyr::summarize(total_predictions = dplyr::n()) %>% 
+  dplyr::summarize(total_predictions = dplyr::n()) %>%
   tibble::deframe()
 
 # Get max prices per owner
-max_prices <- predicted_df %>% 
+max_prices <- predicted_df %>%
   dplyr::group_by(owner) %>%
-  dplyr::summarize(max_price = max(price)) %>% 
+  dplyr::summarize(max_price = max(price)) %>%
   tibble::deframe()
 
 # Obtain which owners haven't reported
 unreported_owners <- names(max_prices)[which(max_prices == 0)]
 
 # Get a summary
-prediction_summary <- predicted_df %>% 
-  dplyr::filter(price %in% max_prices) %>% 
-  dplyr::group_by(owner) %>% 
-  dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "), 
+prediction_summary <- predicted_df %>%
+  dplyr::filter(price %in% max_prices) %>%
+  dplyr::group_by(owner, max_prices) %>%
+  dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "),
                    how_many_predictions = dplyr::n()) %>%
-  dplyr::mutate(total_predictions_left = paste("out of", total_predictions)) 
+  dplyr::mutate(total_predictions_left = paste("out of", total_predictions))
 
 # Put "Not reported" for owners that didn't report enough
 prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unreported_owners)] <- "Not reported"
@@ -169,7 +169,7 @@ prediction_summary$which_days[which(prediction_summary$owner %in% unreported_own
 combined_df <- dplyr::bind_rows(reported_df, predicted_df)
 
 # Write to file
-readr::write_tsv(combined_df, file.path(cleaned_data_dir, 
+readr::write_tsv(combined_df, file.path(cleaned_data_dir,
                                         paste0("turnip_report_data_", current_date, ".tsv")))
 
 # Make a summary report about the variant caller and strategy
@@ -199,6 +199,8 @@ rmarkdown::render(output_file_2, "html_document")
 
 # Push to online
 setwd(root_dir)
+system("git config --global user.email 'cansav09@gmail.com' \n
+git config --global user.name 'cansavvy'")
 system("git status")
 system("git add turnip_report_current_report.html \n git commit -m 'automatic update'")
 system("git push")
