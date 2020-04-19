@@ -7,10 +7,17 @@ root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
 # Name the data directory
 data_dir <- file.path(root_dir, "data")
+reports_dir <- file.path(root_dir, "reports")
+cleaned_data_dir <- file.path(data_dir, "cleaned_data")
 
 # Create the data directory if it doesn't exist
-if(!dir.exists(data_dir)){
-  dir.create(data_dir)
+if(!dir.exists(cleaned_data_dir)){
+  dir.create(cleaned_data_dir, recursive = TRUE)
+}
+
+# Create the reports directory if it doesn't exist
+if(!dir.exists(reports_dir)){
+  dir.create(reports_dir)
 }
 
 # Retrieve currrent day and time
@@ -19,7 +26,7 @@ current_day_of_week <- weekdays(current_date)
 current_time <- Sys.time()
 
 # Name turnip file
-turnip_file <- file.path(root_dir, paste0(current_date, "-turnips.xlsx"))
+turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
 
 # Download turnip data from Googlesheets
 system(paste("wget -O", turnip_file,  
@@ -68,8 +75,11 @@ all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
   dplyr::select(date = Date, AM, PM) %>% 
   # Get rid of Price on prefix
   dplyr::mutate(date = gsub("Price on ", "", date)) %>% 
+  # Make long format
   tidyr::gather("time", "price", -date) %>% 
-  dplyr::mutate(prediction = "reported")
+  # Make new variables
+  dplyr::mutate(prediction = "reported", 
+                reported_date = paste0(current_date, current_time))
   
   # Read in data for real
   turnip_pred <- readxl::read_excel(turnip_file, 
@@ -96,7 +106,8 @@ all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
   turnip_pred <- turnip_pred %>% 
     tidyr::gather("prediction", "price", -day, -time, -minmax) %>% 
     dplyr::mutate(price = as.numeric(price), 
-                  prediction = gsub("V", "prediction_"))
+                  prediction = gsub("V", "prediction_", prediction), 
+                  reported_date = paste0(current_date, current_time))
   
   return(list(reported = reported_prices, 
               predicted = turnip_pred))
@@ -117,12 +128,56 @@ names(predicted_prices) <- simplified_names
 reported_df <- dplyr::bind_rows(reported_prices, .id = "owner")
 predicted_df <- dplyr::bind_rows(predicted_prices, .id = "owner")
 
+# Get max prices per owner
+max_prices <- predicted_df %>% 
+  dplyr::group_by(owner) %>%
+  dplyr::summarize(max_price = max(price)) %>% 
+  tibble::deframe()
+
+# Obtain which owners haven't reported
+unreported_owners <- names(max_prices)[which(max_prices == 0)]
+
+# Get a summary
+prediction_summary <- predicted_df %>% 
+  dplyr::filter(price %in% max_prices) %>% 
+  dplyr::group_by(owner) %>% 
+  dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "), 
+                   how_many_predictions = dplyr::n()) 
+
+# Put "Not reported" for owners that didn't report enough
+prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unreported_owners)] <- "Not reported"
+
+# Put unknown
+prediction_summary$day[which(prediction_summary$owner %in% unreported_owners)] <- "Unknown"
+
+# Put data together
 combined_df <- dplyr::bind_rows(reported_df, predicted_df)
 
+# Write to file
+dplyr::write_tsv(combined_df, file.path(cleaned_data_dir, 
+                                        paste0("turnip_report_data_", current_date, ".tsv")))
 
-ggplot2::ggplot(reported_df, )
+# Make a summary report about the variant caller and strategy
+output_file_1 <- file.path(reports_dir,
+                         paste0("turnip_report_", current_date,"_report.Rmd"))
 
+# Make a summary report about the variant caller and strategy
+output_file_2 <- file.path(root_dir,
+                           paste0("turnip_report_current_report.Rmd"))
 
+# Path to the template file
+template_file <- file.path(root_dir,
+                           "template",
+                           "template_report.Rmd")
+
+# Make copy of template
+if (file.exists(template_file)) {
+  file.copy(from = template_file, to = output_file_1, overwrite = TRUE)
+  file.copy(from = template_file, to = output_file_2, overwrite = TRUE)
+} else {
+  stop(cat("The Rmd template file ", template_file, " does not exist."))
+}
 
 # Run this notebook
-rmarkdown::render(output_file, "html_document")
+rmarkdown::render(output_file_1, "html_document")
+rmarkdown::render(output_file_2, "html_document")

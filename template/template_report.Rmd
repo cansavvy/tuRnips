@@ -1,0 +1,19 @@
+---
+title: "`r paste('Turnip Projections', current_date)`"
+output:   
+  prettydoc::html_pretty:
+    theme: lumen
+---
+
+```{r}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+## Predictions summary
+
+```{r }
+# Make it a pretty table
+knitr::kable(prediction_summary, "html") %>% 
+  kableExtra::kable_styling() 
+```
+
