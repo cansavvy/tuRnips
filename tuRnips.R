@@ -101,10 +101,10 @@ all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
     as.data.frame(stringsAsFactors = FALSE)
 
   # Name columns we need
-  colnames(turnip_pred )[1:3] <- c("day", "time", "minmax")
+  colnames(turnip_pred )[1:3] <- c("date", "time", "minmax")
 
-  # Reformat Day column so there isn't NAs
-  turnip_pred$day <- rep(unique(turnip_pred$day[!is.na(turnip_pred $day)]),
+  # Reformat date column so there isn't NAs
+  turnip_pred$date <- rep(unique(turnip_pred$date[!is.na(turnip_pred $date)]),
                            each = 4)
 
   # Reformat Time column so there isn't NAs
@@ -112,7 +112,7 @@ all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
 
   # Make into long format
   turnip_pred <- turnip_pred %>%
-    tidyr::gather("prediction", "price", -day, -time, -minmax) %>%
+    tidyr::gather("prediction", "price", -date, -time, -minmax) %>%
     dplyr::mutate(price = as.numeric(price),
                   prediction = gsub("V", "prediction_", prediction),
                   reported_date = paste0(current_date, current_time))
@@ -155,7 +155,7 @@ unreported_owners <- names(max_prices)[which(max_prices == 0)]
 prediction_summary <- predicted_df %>%
   dplyr::filter(price %in% max_prices) %>%
   dplyr::group_by(owner) %>%
-  dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "),
+  dplyr::summarize(which_days = paste(paste(date, time), collapse = ", "),
                    how_many_predictions = dplyr::n()) %>%
   dplyr::mutate(total_predictions_left = paste("out of", total_predictions), 
                 max_prices) %>% 
@@ -168,7 +168,8 @@ prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unre
 prediction_summary$which_days[which(prediction_summary$owner %in% unreported_owners)] <- "Unknown"
 
 # Put data together
-combined_df <- dplyr::bind_rows(reported_df, predicted_df)
+combined_df <- dplyr::bind_rows(reported_df, predicted_df) %>% 
+  dplyr::mutate(when = paste0(date, "-", time))
 
 # Write to file
 readr::write_tsv(combined_df, file.path(cleaned_data_dir,

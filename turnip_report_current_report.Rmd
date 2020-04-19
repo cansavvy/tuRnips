@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 # Make it a pretty table
 knitr::kable(prediction_summary, 
              col.names = c("Owner",
+                           "Max price predicted",
                            "Days of max prediction",
                            "How many models with this max",
                            "Out of total number of viable predictions"), 
@@ -22,3 +23,21 @@ knitr::kable(prediction_summary,
   kableExtra::kable_styling() 
 ```
 
+
+```{r}
+ggplot2::ggplot(combined_df %>% 
+                  dplyr::filter(!is.na(price), 
+                                minmax == "Max", 
+                                !(owner %in% unreported_owners), 
+                                price > 100), 
+                ggplot2::aes(x = forcats::fct_relevel(when, paste0(rep(unique(date),
+                                                                      each = 2), c("-AM", "-PM"))),
+                             y = price, 
+                             color = prediction)) + 
+  ggplot2::geom_jitter(alpha = .25) + 
+  ggplot2::facet_wrap(~ owner) + 
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1), 
+                 legend.position = "none") +
+  ggplot2::xlab("")
+```
