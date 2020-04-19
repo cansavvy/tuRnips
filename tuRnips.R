@@ -154,10 +154,12 @@ unreported_owners <- names(max_prices)[which(max_prices == 0)]
 # Get a summary
 prediction_summary <- predicted_df %>%
   dplyr::filter(price %in% max_prices) %>%
-  dplyr::group_by(owner, max_prices) %>%
+  dplyr::group_by(owner) %>%
   dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "),
                    how_many_predictions = dplyr::n()) %>%
-  dplyr::mutate(total_predictions_left = paste("out of", total_predictions))
+  dplyr::mutate(total_predictions_left = paste("out of", total_predictions), 
+                max_prices) %>% 
+  dplyr::select(owner, max_prices, dplyr::everything())
 
 # Put "Not reported" for owners that didn't report enough
 prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unreported_owners)] <- "Not reported"

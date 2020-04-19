@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 # Make it a pretty table
 knitr::kable(prediction_summary, 
              col.names = c("Owner",
+                           "Max price predicted",
                            "Days of max prediction",
                            "How many models with this max",
                            "Out of total number of viable predictions"), 
