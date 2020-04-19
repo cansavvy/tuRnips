@@ -5,6 +5,21 @@
 # Establish base dir
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
 
+
+# Load library:
+library(optparse)
+
+#--------------------------------Set up options--------------------------------#
+# Set up optparse options
+option_list <- list(
+  make_option(
+    opt_str = c("-p", "--url"), type = "character",
+    default = "", help = "URL")
+)
+
+# Parse options
+opt <- parse_args(OptionParser(option_list = option_list))
+
 # Name the data directory
 data_dir <- file.path(root_dir, "data")
 reports_dir <- file.path(root_dir, "reports")
@@ -28,28 +43,19 @@ current_time <- Sys.time()
 # Name turnip file
 turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
 
-if (!file.exists(turnip_file)) {
-# Download turnip data from Googlesheets
-system(paste("wget -O", turnip_file,  
+# Get the time since last update
+if (file.exists(turnip_file)) {
+  last_update <- Sys.time() - file.info(turnip_file)$mtime
+}
+
+# Download turnip data from Googlesheets if 
+if (!file.exists(turnip_file) | as.numeric(last_update) > 20) {
+  system(paste("wget -O", turnip_file,  
        "'https://docs.google.com/spreadsheets/d/1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74/export?format=xlsx&id=1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74'"))
 }
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
-
-# Load library:
-library(optparse)
-
-#--------------------------------Set up options--------------------------------#
-# Set up optparse options
-option_list <- list(
-  make_option(
-    opt_str = c("-p", "--url"), type = "character",
-    default = "", help = "URL")
-)
-
-# Parse options
-opt <- parse_args(OptionParser(option_list = option_list))
 
 ############################### Get answers sheet ##############################
 # Get sheet names
@@ -190,3 +196,9 @@ if (file.exists(template_file)) {
 # Run this notebook
 rmarkdown::render(output_file_1, "html_document")
 rmarkdown::render(output_file_2, "html_document")
+
+# Push to online
+setwd(root_dir)
+system("git add turnip_report_current_report.html")
+system("git commit -m 'automatic update'")
+system("git push")

@@ -5,8 +5,14 @@ output:
     theme: cayman
 ---
 
+![](stalks.png)
+
 ```{r, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+cat("As of:", print(Sys.time()))
 ```
 
 ## Predictions summary
