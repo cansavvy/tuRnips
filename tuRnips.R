@@ -28,9 +28,11 @@ current_time <- Sys.time()
 # Name turnip file
 turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
 
+if (!file.exists(turnip_file)) {
 # Download turnip data from Googlesheets
 system(paste("wget -O", turnip_file,  
        "'https://docs.google.com/spreadsheets/d/1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74/export?format=xlsx&id=1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74'"))
+}
 
 # Magrittr pipe
 `%>%` <- dplyr::`%>%`
@@ -68,9 +70,9 @@ all_turnip_prices <- lapply(sheet_indices, function(sheet_num) {
   
   # Import reported prices
   reported_prices <- readxl::read_excel(turnip_file, 
-                                    sheet = sheet_num, 
-                                    col_names = TRUE, 
-                                    n_max = pattern_starts -3)  %>%
+                                        sheet = sheet_num, 
+                                        col_names = TRUE,
+                                        n_max = pattern_starts -3)  %>%
   # Select only columns we want
   dplyr::select(date = Date, AM, PM) %>% 
   # Get rid of Price on prefix
@@ -118,7 +120,7 @@ reported_prices <- purrr::map(all_turnip_prices, "reported")
 predicted_prices <- purrr::map(all_turnip_prices, "predicted")
 
 # Simplfy the names for these lists
-simplified_names <- gsub(" |'s|Island", "", sheet_names[sheet_indices])
+simplified_names <- gsub(" |'s|Island|Village", "", sheet_names[sheet_indices])
 
 # Name the islands
 names(reported_prices) <- simplified_names
@@ -127,6 +129,12 @@ names(predicted_prices) <- simplified_names
 # Make into one data.frame
 reported_df <- dplyr::bind_rows(reported_prices, .id = "owner")
 predicted_df <- dplyr::bind_rows(predicted_prices, .id = "owner")
+
+# Get total number of predictions
+total_predictions <- predicted_df %>% 
+  dplyr::group_by(owner) %>%
+  dplyr::summarize(total_predictions = dplyr::n()) %>% 
+  tibble::deframe()
 
 # Get max prices per owner
 max_prices <- predicted_df %>% 
@@ -142,13 +150,14 @@ prediction_summary <- predicted_df %>%
   dplyr::filter(price %in% max_prices) %>% 
   dplyr::group_by(owner) %>% 
   dplyr::summarize(which_days = paste(paste(day, time), collapse = ", "), 
-                   how_many_predictions = dplyr::n()) 
+                   how_many_predictions = dplyr::n()) %>%
+  dplyr::mutate(total_predictions_left = paste("out of", total_predictions)) 
 
 # Put "Not reported" for owners that didn't report enough
 prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unreported_owners)] <- "Not reported"
 
 # Put unknown
-prediction_summary$day[which(prediction_summary$owner %in% unreported_owners)] <- "Unknown"
+prediction_summary$which_days[which(prediction_summary$owner %in% unreported_owners)] <- "Unknown"
 
 # Put data together
 combined_df <- dplyr::bind_rows(reported_df, predicted_df)

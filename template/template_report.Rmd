@@ -2,10 +2,10 @@
 title: "`r paste('Turnip Projections', current_date)`"
 output:   
   prettydoc::html_pretty:
-    theme: lumen
+    theme: cayman
 ---
 
-```{r}
+```{r, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
@@ -13,7 +13,12 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 
 ```{r }
 # Make it a pretty table
-knitr::kable(prediction_summary, "html") %>% 
+knitr::kable(prediction_summary, 
+             col.names = c("Owner",
+                           "Days of max prediction",
+                           "How many models with this max",
+                           "Out of total number of viable predictions"), 
+             "html") %>% 
   kableExtra::kable_styling() 
 ```
 
