@@ -154,7 +154,7 @@ prediction_summary$day[which(prediction_summary$owner %in% unreported_owners)] <
 combined_df <- dplyr::bind_rows(reported_df, predicted_df)
 
 # Write to file
-dplyr::write_tsv(combined_df, file.path(cleaned_data_dir, 
+readr::write_tsv(combined_df, file.path(cleaned_data_dir, 
                                         paste0("turnip_report_data_", current_date, ".tsv")))
 
 # Make a summary report about the variant caller and strategy
