@@ -2,9 +2,9 @@
 
 # Turnip summaries
 
+## Publishes a report to https://bit.ly/34N0LU9
 # Establish base dir
 root_dir <- rprojroot::find_root(rprojroot::has_dir(".git"))
-
 
 # Load library:
 library(optparse)
@@ -199,6 +199,6 @@ rmarkdown::render(output_file_2, "html_document")
 
 # Push to online
 setwd(root_dir)
-system("git add turnip_report_current_report.html")
-system("git commit -m 'automatic update'")
+system("git status")
+system("git add turnip_report_current_report.html \n git commit -m 'automatic update'")
 system("git push")
