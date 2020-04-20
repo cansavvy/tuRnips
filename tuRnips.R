@@ -46,13 +46,13 @@ turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
 
 # Get the time since last update
 if (file.exists(turnip_file)) {
-  last_update <- Sys.time() - file.info(turnip_file)$mtime
+  last_update <- difftime(Sys.time(), file.info(turnip_file)$mtime, units='mins')
 } else {
   last_update <- 1200
 }
 
 # Download turnip data from Googlesheets if
-if (!file.exists(turnip_file) | as.numeric(last_update) > 20) {
+if (any(!file.exists(turnip_file), as.numeric(last_update) > 5)) {
   system(paste("wget -O", turnip_file,
        "'https://docs.google.com/spreadsheets/d/1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74/export?format=xlsx&id=1RTOuglfnwqMQzZ7BoTDMOTfr4rjVbksv85RwZB6YM74'"))
 }
@@ -217,6 +217,6 @@ rmarkdown::render(output_file_2, "html_document")
 setwd(root_dir)
 system("git config --global user.email 'cansav09@gmail.com' \n
 git config --global user.name 'cansavvy'")
+system(paste0("git add", root_dir,"turnip_report_current_report.html \n git commit -m 'automatic update'"))
 system("git status")
-system("git add turnip_report_current_report.html \n git commit -m 'automatic update'")
 system("git push")
