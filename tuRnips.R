@@ -46,6 +46,8 @@ turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
 # Get the time since last update
 if (file.exists(turnip_file)) {
   last_update <- Sys.time() - file.info(turnip_file)$mtime
+} else {
+  last_update <- 1200
 }
 
 # Download turnip data from Googlesheets if
