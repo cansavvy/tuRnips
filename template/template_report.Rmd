@@ -30,7 +30,8 @@ knitr::kable(prediction_summary,
 ggplot2::ggplot(current_prices, 
                 ggplot2::aes(x = owner, y = price, fill = owner)) + 
   ggplot2::geom_bar(stat = "identity") + 
-  ggplot2::ylim(c(0, max(prediction_summary$max_prices)))
+  ggplot2::ylim(c(0, max(prediction_summary$max_prices))) + 
+  ggplot2::theme_minimal()
 ```
 
 ## Predictions
