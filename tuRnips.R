@@ -39,6 +39,7 @@ if(!dir.exists(reports_dir)){
 current_date <- Sys.Date()
 current_day_of_week <- weekdays(current_date)
 current_time <- Sys.time()
+noon <- as.POSIXct(strptime(c("12:00"), "%H:%M"), "EST")
 
 # Name turnip file
 turnip_file <- file.path(data_dir, paste0(current_date, "-turnips.xlsx"))
@@ -138,6 +139,15 @@ names(predicted_prices) <- simplified_names
 reported_df <- dplyr::bind_rows(reported_prices, .id = "owner")
 predicted_df <- dplyr::bind_rows(predicted_prices, .id = "owner")
 
+# Get current prices 
+current_am_pm <- ifelse(current_time < noon, "AM", "PM")
+
+# Retrieve them
+current_prices <- reported_df %>% 
+  dplyr::filter(time == current_am_pm, date == weekdays(current_date)) %>% 
+  dplyr::select(owner, price) %>% 
+  dplyr::mutate() 
+
 # Get total number of predictions
 total_predictions <- predicted_df %>%
   dplyr::group_by(owner) %>%
@@ -160,8 +170,9 @@ prediction_summary <- predicted_df %>%
   dplyr::summarize(which_days = paste(paste(date, time), collapse = ", "),
                    how_many_predictions = dplyr::n()) %>%
   dplyr::mutate(total_predictions_left = paste("out of", total_predictions), 
+                current_prices = dplyr::pull(current_prices, price),  
                 max_prices) %>% 
-  dplyr::select(owner, max_prices, dplyr::everything())
+  dplyr::select(owner, current_prices, max_prices, dplyr::everything())
 
 # Put "Not reported" for owners that didn't report enough
 prediction_summary$how_many_predictions[which(prediction_summary$owner %in% unreported_owners)] <- "Not reported"

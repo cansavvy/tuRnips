@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 # Make it a pretty table
 knitr::kable(prediction_summary, 
              col.names = c("Owner",
+                           "Current price",
                            "Max price predicted",
                            "Days of max prediction",
                            "How many models with this max",
@@ -23,6 +24,16 @@ knitr::kable(prediction_summary,
   kableExtra::kable_styling() 
 ```
 
+## Current prices
+
+```{r}
+ggplot2::ggplot(current_prices, 
+                ggplot2::aes(x = owner, y = price, fill = owner)) + 
+  ggplot2::geom_bar(stat = "identity") + 
+  ggplot2::ylim(c(0, max(prediction_summary$max_prices)))
+```
+
+## Predictions
 
 ```{r}
 ggplot2::ggplot(combined_df %>% 
